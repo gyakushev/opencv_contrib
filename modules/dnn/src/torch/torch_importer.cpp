@@ -45,6 +45,7 @@
 #include <map>
 #include <algorithm>
 #include <iostream>
+#include <intrin.h>
 
 namespace cv {
 namespace dnn {
@@ -269,6 +270,7 @@ struct TorchImporter : public ::cv::dnn::Importer
         }
 
         storages.insert(std::make_pair(index, storageMat));
+		readedIndexes.insert(index);
     }
 
     void readTorchTable(Dict &scalarParams, std::map<String, Blob> &tensorParams)
@@ -281,16 +283,23 @@ struct TorchImporter : public ::cv::dnn::Importer
 
         long fpos;
         int numPairs = readInt();
+		std::cout << "found #keys: " << numPairs << "\n";
 
         for (int i = 0; i < numPairs; i++)
         {
             fpos = THFile_position(file);
             int ktype = readInt();
 
-            if (ktype != TYPE_STRING) //skip non-string fileds
+			if (ktype == TYPE_NIL) {
+				std::cout << i << "th key: nil\n";
+				continue;
+			}
+
+            if (ktype != TYPE_STRING) //skip non-string fields
             {
                 THFile_seek(file, fpos);
-                readObject(); //key
+				std::cout << i << "th key: skipping non-string key (type " << ktype << "\n";
+				readObject(); //key
                 readObject(); //value
                 continue;
             }
@@ -375,7 +384,8 @@ struct TorchImporter : public ::cv::dnn::Importer
         int indexStorage = readInt();
         if (readedIndexes.count(indexStorage) == 0)
         {
-            int typeStorage = parseStorageType(readTorchClassName());
+			String classStorage = readTorchClassName();
+            int typeStorage = parseStorageType(classStorage);
             CV_Assert(typeStorage >= 0 && typeTensor == typeStorage);
             readTorchStorage(indexStorage, typeStorage);
         }
@@ -547,27 +557,16 @@ struct TorchImporter : public ::cv::dnn::Importer
 
                 curModule->modules.push_back(newModule);
             }
-            else if (nnName == "ReLU")
-            {
-                curModule->modules.push_back(new Module(nnName, "ReLU"));
-                readObject();
-            }
             else if (nnName == "Tanh")
             {
                 curModule->modules.push_back(new Module(nnName, "TanH"));
                 readObject();
             }
-            else if (nnName == "Sigmoid")
-            {
-                curModule->modules.push_back(new Module(nnName, "Sigmoid"));
-                readObject();
-            }
-            else
-            {
-                delete newModule;
-                CV_Error(Error::StsNotImplemented, "Unknown nn class \"" + className + "\"");
-                readObject();
-            }
+			else
+			{
+				curModule->modules.push_back(new Module(nnName, nnName));
+				readObject();
+			}
         }
         else
         {
