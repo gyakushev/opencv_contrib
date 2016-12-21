@@ -305,7 +305,7 @@ READ_WRITE_METHODS(int, Int,
                    int ret = fscanf(dfself->handle, "%d", &data[i]); if(ret <= 0) break; else nread++,
                    int ret = fprintf(dfself->handle, "%d", data[i]); if(ret <= 0) break; else nwrite++)
 
-READ_WRITE_METHODS(long, Long,
+READ_WRITE_METHODS(long long, Long,
                    int ret = fscanf(dfself->handle, "%ld", &data[i]); if(ret <= 0) break; else nread++,
                    int ret = fprintf(dfself->handle, "%ld", data[i]); if(ret <= 0) break; else nwrite++)
 
